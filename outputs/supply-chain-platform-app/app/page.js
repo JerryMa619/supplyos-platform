@@ -18,7 +18,20 @@ const views = [
   { id: "connections", label: "数据接入", icon: "⇄" },
   { id: "replenishment", label: "补货计划", icon: "↻" },
   { id: "compliance", label: "合规文件", icon: "◇" },
-  { id: "suppliers", label: "供应商", icon: "▦" }
+  { id: "suppliers", label: "供应商", icon: "▦" },
+  { id: "settings", label: "设置", icon: "⚙" }
+];
+
+const languageOptions = [
+  { code: "zh-CN", label: "简体中文", region: "中国大陆", preview: "采购、库存、合规和供应商工作流使用中文界面。" },
+  { code: "en-US", label: "English", region: "United States", preview: "Use English labels for supply chain teams and global merchants." }
+];
+
+const currencyOptions = [
+  { code: "USD", label: "US Dollar", symbol: "$", usage: "跨境电商、Amazon/Shopify 默认" },
+  { code: "GBP", label: "British Pound", symbol: "£", usage: "英国商家与本地采购" },
+  { code: "EUR", label: "Euro", symbol: "€", usage: "欧盟销售、合规与采购" },
+  { code: "CNY", label: "Chinese Yuan", symbol: "¥", usage: "中国供应商、工厂报价" }
 ];
 
 const starterMessages = [
@@ -31,6 +44,11 @@ const starterMessages = [
 function matchesSearch(search, ...values) {
   if (!search) return true;
   return values.join(" ").toLowerCase().includes(search);
+}
+
+function initialPreference(key, fallback) {
+  if (typeof window === "undefined") return fallback;
+  return window.localStorage.getItem(key) || fallback;
 }
 
 function Metric({ label, value, trend, tone }) {
@@ -67,6 +85,8 @@ export default function SupplyOSApp() {
   const [messages, setMessages] = useState(starterMessages);
   const [toast, setToast] = useState("");
   const [syncSummary, setSyncSummary] = useState(null);
+  const [language, setLanguage] = useState(() => initialPreference("supplyos.language", "zh-CN"));
+  const [currency, setCurrency] = useState(() => initialPreference("supplyos.currency", "USD"));
 
   const normalizedSearch = search.trim().toLowerCase();
 
@@ -159,6 +179,19 @@ export default function SupplyOSApp() {
     flash("同步检查已完成。");
   }
 
+  function updateLanguage(nextLanguage) {
+    setLanguage(nextLanguage);
+    window.localStorage.setItem("supplyos.language", nextLanguage);
+    const label = languageOptions.find((option) => option.code === nextLanguage)?.label || nextLanguage;
+    flash(`语言已设置为 ${label}。`);
+  }
+
+  function updateCurrency(nextCurrency) {
+    setCurrency(nextCurrency);
+    window.localStorage.setItem("supplyos.currency", nextCurrency);
+    flash(`货币已设置为 ${nextCurrency}。`);
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="主导航">
@@ -226,6 +259,7 @@ export default function SupplyOSApp() {
             onSubmitPrompt={submitPrompt}
             riskFilter={riskFilter}
             riskySkuCount={riskySkuCount}
+            currency={currency}
             serviceLevel={serviceLevel}
             setRiskFilter={setRiskFilter}
             spend={spend}
@@ -247,6 +281,7 @@ export default function SupplyOSApp() {
           <ReplenishmentView
             normalizedSearch={normalizedSearch}
             onAction={flash}
+            currency={currency}
             serviceLevel={serviceLevel}
             setServiceLevel={setServiceLevel}
           />
@@ -263,6 +298,15 @@ export default function SupplyOSApp() {
         )}
 
         {activeView === "suppliers" && <SuppliersView normalizedSearch={normalizedSearch} />}
+
+        {activeView === "settings" && (
+          <SettingsView
+            currency={currency}
+            language={language}
+            onCurrencyChange={updateCurrency}
+            onLanguageChange={updateLanguage}
+          />
+        )}
       </main>
 
       <div className={`toast ${toast ? "show" : ""}`} role="status" aria-live="polite">
@@ -282,6 +326,7 @@ function OverviewView({
   onSubmitPrompt,
   riskFilter,
   riskySkuCount,
+  currency,
   setRiskFilter,
   spend,
   tasks
@@ -301,7 +346,7 @@ function OverviewView({
     <section className="view active">
       <div className="metric-grid">
         <Metric label="30 天缺货风险" value={riskySkuCount} trend="+3 vs 上周" tone="danger" />
-        <Metric label="建议采购金额" value={money(spend)} trend="覆盖 42 天" />
+        <Metric label="建议采购金额" value={money(spend, currency)} trend={`以 ${currency} 显示`} />
         <Metric label="待催 PO" value={latePoCount} trend="最晚延迟 11 天" tone="warning" />
         <Metric label="合规缺口" value={gapCount} trend="5 个高风险" tone="danger" />
       </div>
@@ -508,7 +553,7 @@ function ConnectionsView({ normalizedSearch, onAddConnector, onConfigure, onRunS
   );
 }
 
-function ReplenishmentView({ normalizedSearch, onAction, serviceLevel, setServiceLevel }) {
+function ReplenishmentView({ normalizedSearch, onAction, currency, serviceLevel, setServiceLevel }) {
   return (
     <section className="view active">
       <section className="panel">
@@ -553,7 +598,7 @@ function ReplenishmentView({ normalizedSearch, onAction, serviceLevel, setServic
                       <td>{sku.stock.toLocaleString()}</td>
                       <td>{sku.dailySales}/天</td>
                       <td>{days} 天</td>
-                      <td>{qty.toLocaleString()} 件 · {money(qty * sku.unitCost)}</td>
+                      <td>{qty.toLocaleString()} 件 · {money(qty * sku.unitCost, currency)}</td>
                       <td>{sku.supplier}</td>
                       <td><Badge tone={badgeClass(risk)}>{status}</Badge></td>
                     </tr>
@@ -666,6 +711,84 @@ function SuppliersView({ normalizedSearch }) {
                 </dl>
               </article>
             ))}
+        </div>
+      </section>
+    </section>
+  );
+}
+
+function SettingsView({ currency, language, onCurrencyChange, onLanguageChange }) {
+  const selectedLanguage = languageOptions.find((option) => option.code === language) || languageOptions[0];
+  const selectedCurrency = currencyOptions.find((option) => option.code === currency) || currencyOptions[0];
+
+  return (
+    <section className="view active">
+      <div className="settings-hero">
+        <div>
+          <span className="eyebrow">Preferences</span>
+          <h2>应用设置</h2>
+          <p>先配置团队使用的语言和默认货币；这些偏好会影响后续工作台、报表和供应商沟通。</p>
+        </div>
+        <div className="settings-summary">
+          <span>当前语言 <b>{selectedLanguage.label}</b></span>
+          <span>默认货币 <b>{selectedCurrency.code}</b></span>
+        </div>
+      </div>
+
+      <div className="settings-layout">
+        <section className="panel">
+          <PanelHeading eyebrow="Language" title="语言" />
+          <div className="option-grid">
+            {languageOptions.map((option) => (
+              <button
+                className={`option-card ${language === option.code ? "selected" : ""}`}
+                key={option.code}
+                onClick={() => onLanguageChange(option.code)}
+                type="button"
+              >
+                <span className="option-kicker">{option.region}</span>
+                <strong>{option.label}</strong>
+                <p>{option.preview}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel">
+          <PanelHeading eyebrow="Currency" title="默认货币" />
+          <div className="currency-grid">
+            {currencyOptions.map((option) => (
+              <button
+                className={`currency-card ${currency === option.code ? "selected" : ""}`}
+                key={option.code}
+                onClick={() => onCurrencyChange(option.code)}
+                type="button"
+              >
+                <span>{option.symbol}</span>
+                <div>
+                  <strong>{option.code}</strong>
+                  <p>{option.label}</p>
+                </div>
+                <small>{option.usage}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <section className="panel">
+        <PanelHeading eyebrow="Preview" title="显示效果预览" />
+        <div className="preference-preview">
+          <div>
+            <span className="eyebrow">Language</span>
+            <strong>{selectedLanguage.label}</strong>
+            <p>{selectedLanguage.preview}</p>
+          </div>
+          <div>
+            <span className="eyebrow">Currency</span>
+            <strong>{money(84200, currency)}</strong>
+            <p>示例：建议采购金额 84,200 美元会按当前默认货币显示。</p>
+          </div>
         </div>
       </section>
     </section>
