@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SupplyOS - AI 采购与供应商工作台</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">
+          <div class="brand-mark">S</div>
+          <div>
+            <strong>SupplyOS</strong>
+            <span>AI Supply Desk</span>
+          </div>
+        </div>
+        <nav class="nav-list">
+          <button class="nav-item active" data-view="overview" type="button" title="今日工作台">
+            <span aria-hidden="true">⌂</span>
+            <span>今日工作台</span>
+          </button>
+          <button class="nav-item" data-view="connections" type="button" title="数据接入">
+            <span aria-hidden="true">⇄</span>
+            <span>数据接入</span>
+          </button>
+          <button class="nav-item" data-view="replenishment" type="button" title="补货计划">
+            <span aria-hidden="true">↻</span>
+            <span>补货计划</span>
+          </button>
+          <button class="nav-item" data-view="compliance" type="button" title="合规文件">
+            <span aria-hidden="true">◇</span>
+            <span>合规文件</span>
+          </button>
+          <button class="nav-item" data-view="suppliers" type="button" title="供应商">
+            <span aria-hidden="true">▦</span>
+            <span>供应商</span>
+          </button>
+        </nav>
+        <div class="sidebar-panel">
+          <span class="eyebrow">本周重点</span>
+          <strong>9 个 SKU 有缺货风险</strong>
+          <p>其中 4 个来自同一供应商，且该供应商有 2 份证书即将过期。</p>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">2026-06-29 · 跨境家居品牌</p>
+            <h1>AI 采购与供应商管理工作台</h1>
+          </div>
+          <div class="topbar-actions">
+            <label class="search" title="搜索 SKU、供应商或 PO">
+              <span aria-hidden="true">⌕</span>
+              <input id="globalSearch" type="search" placeholder="搜索 SKU / 供应商 / PO">
+            </label>
+            <button class="icon-button" id="refreshBrief" type="button" title="刷新今日简报">↺</button>
+          </div>
+        </header>
+
+        <section class="view active" id="overview">
+          <div class="metric-grid">
+            <article class="metric">
+              <span class="metric-label">30 天缺货风险</span>
+              <strong id="riskSkuCount">9</strong>
+              <span class="trend danger">+3 vs 上周</span>
+            </article>
+            <article class="metric">
+              <span class="metric-label">建议采购金额</span>
+              <strong id="recommendedSpend">$84.2k</strong>
+              <span class="trend">覆盖 42 天</span>
+            </article>
+            <article class="metric">
+              <span class="metric-label">待催 PO</span>
+              <strong id="latePoCount">6</strong>
+              <span class="trend warning">最晚延迟 11 天</span>
+            </article>
+            <article class="metric">
+              <span class="metric-label">合规缺口</span>
+              <strong id="complianceGapCount">14</strong>
+              <span class="trend danger">5 个高风险</span>
+            </article>
+          </div>
+
+          <div class="overview-layout">
+            <section class="panel task-panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">AI 优先级</span>
+                  <h2>今天先处理这些</h2>
+                </div>
+                <button class="ghost-button" id="autoPlanBtn" type="button">生成行动计划</button>
+              </div>
+              <div class="task-list" id="taskList"></div>
+            </section>
+
+            <section class="panel copilot">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">Copilot</span>
+                  <h2>采购与合规助手</h2>
+                </div>
+              </div>
+              <div class="chat-log" id="chatLog" aria-live="polite"></div>
+              <form class="chat-input" id="copilotForm">
+                <input id="copilotPrompt" type="text" placeholder="例如：帮我催 Sunny Textile 确认交期">
+                <button type="submit">发送</button>
+              </form>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">风险地图</span>
+                <h2>SKU、采购单与合规的交叉风险</h2>
+              </div>
+              <div class="segmented" role="tablist" aria-label="风险筛选">
+                <button class="active" data-risk-filter="all" type="button">全部</button>
+                <button data-risk-filter="stockout" type="button">缺货</button>
+                <button data-risk-filter="compliance" type="button">合规</button>
+              </div>
+            </div>
+            <div class="risk-board" id="riskBoard"></div>
+          </section>
+        </section>
+
+        <section class="view" id="connections">
+          <div class="connection-hero">
+            <div>
+              <span class="eyebrow">Data Onboarding</span>
+              <h2>商家数据接入中心</h2>
+              <p>把店铺、ERP、数据库、3PL 和供应商文件接入统一供应链模型。</p>
+            </div>
+            <button class="primary-button" id="runSyncBtn" type="button">运行同步检查</button>
+          </div>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">Connectors</span>
+                <h2>连接器状态</h2>
+              </div>
+              <button class="ghost-button" id="addConnectorBtn" type="button">添加连接器</button>
+            </div>
+            <div class="connector-grid" id="connectorGrid"></div>
+          </section>
+
+          <div class="data-layout">
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">Canonical Model</span>
+                  <h2>标准供应链数据模型</h2>
+                </div>
+              </div>
+              <div class="model-grid" id="modelGrid"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">Sync Pipeline</span>
+                  <h2>同步管道</h2>
+                </div>
+              </div>
+              <ol class="pipeline-list" id="pipelineList"></ol>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">Field Mapping</span>
+                <h2>字段映射预览</h2>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>来源字段</th>
+                    <th>标准字段</th>
+                    <th>业务对象</th>
+                    <th>质量检查</th>
+                    <th>状态</th>
+                  </tr>
+                </thead>
+                <tbody id="mappingRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" id="replenishment">
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">Replenishment</span>
+                <h2>补货建议</h2>
+              </div>
+              <div class="toolbar">
+                <label class="compact-field">
+                  <span>服务水平</span>
+                  <input id="serviceLevel" type="range" min="85" max="99" value="95">
+                  <b id="serviceLevelValue">95%</b>
+                </label>
+                <button class="primary-button" id="createPoBtn" type="button">生成 PO 草稿</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>当前库存</th>
+                    <th>日销量</th>
+                    <th>预计缺货</th>
+                    <th>建议采购</th>
+                    <th>供应商</th>
+                    <th>状态</th>
+                  </tr>
+                </thead>
+                <tbody id="replenishmentRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">PO Control</span>
+                <h2>采购单跟踪</h2>
+              </div>
+            </div>
+            <div class="po-grid" id="poGrid"></div>
+          </section>
+        </section>
+
+        <section class="view" id="compliance">
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">Compliance</span>
+                <h2>供应商文件与 SKU 合规</h2>
+              </div>
+              <button class="primary-button" id="requestDocsBtn" type="button">向供应商索要文件</button>
+            </div>
+            <div class="compliance-layout">
+              <div class="doc-checklist" id="docChecklist"></div>
+              <div class="upload-zone">
+                <span aria-hidden="true">⇧</span>
+                <strong>上传供应商文件</strong>
+                <p>拖入测试报告、原产地证明、材料声明或证书，AI 会抽取有效期与覆盖 SKU。</p>
+                <button class="ghost-button" id="simulateUploadBtn" type="button">模拟 AI 审核</button>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" id="suppliers">
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">Supplier Intelligence</span>
+                <h2>供应商评分</h2>
+              </div>
+            </div>
+            <div class="supplier-grid" id="supplierGrid"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>

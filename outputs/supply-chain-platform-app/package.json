@@ -1,0 +1,45 @@
+{
+  "name": "supply-chain-platform-app",
+  "version": "0.1.0",
+  "private": true,
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3001",
+    "build": "next build",
+    "desktop": "node desktop/start-desktop.mjs",
+    "desktop:electron": "electron .",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:build:app": "tauri build --bundles app",
+    "start": "next start --hostname 127.0.0.1 --port 3001",
+    "lint": "next lint"
+  },
+  "build": {
+    "appId": "com.supplyos.desktop",
+    "productName": "SupplyOS",
+    "files": [
+      "app/**/*",
+      "desktop/**/*",
+      "lib/**/*",
+      "next.config.mjs",
+      "package.json",
+      ".next/**/*",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.business"
+    }
+  },
+  "dependencies": {
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
+    "electron": "^42.5.1",
+    "electron-builder": "^26.15.3",
+    "eslint": "latest",
+    "eslint-config-next": "latest"
+  }
+}
