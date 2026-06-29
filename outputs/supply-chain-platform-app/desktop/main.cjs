@@ -1,3 +1,4 @@
+const path = require("node:path");
 const { app, BrowserWindow, Menu, shell } = require("electron");
 
 const APP_URL = process.env.SUPPLYOS_APP_URL || "http://127.0.0.1:3001";
@@ -10,6 +11,7 @@ function createWindow() {
     minHeight: 720,
     title: "SupplyOS",
     backgroundColor: "#f6f7f4",
+    icon: path.join(__dirname, "..", "src-tauri", "icons", "icon.png"),
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {
       contextIsolation: true,
